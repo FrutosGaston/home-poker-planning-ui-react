@@ -1,4 +1,4 @@
-import { AppBar, Toolbar, Typography, IconButton, Select, MenuItem, Tooltip } from '@mui/material';
+import { AppBar, Box, Toolbar, IconButton, Select, MenuItem, Tooltip } from '@mui/material';
 import { DarkMode, LightMode } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 
@@ -23,9 +23,9 @@ export default function AppToolbar({ dark, onToggleTheme }: Props) {
   return (
     <AppBar position="static" color="primary" enableColorOnDark>
       <Toolbar sx={{ gap: 1 }}>
-        <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 700 }}>
-          🃏 Planning Poker
-        </Typography>
+        <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
+          <img src="/logo.svg" alt="Planning Poker" height={36} style={{ display: 'block' }} />
+        </Box>
 
         <Select
           value={i18n.language}

@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Client } from '@stomp/stompjs';
 
 const WS_URL = import.meta.env.VITE_WS_URL;
+const IS_DEV = import.meta.env.DEV;
 
 let client: Client | null = null;
 
@@ -28,34 +29,42 @@ export const useStomp = <T>(
 
   useEffect(() => {
     if (!topic) return;
+
+    // In dev mode use the in-browser stompBus instead of a real WebSocket
+    if (IS_DEV) {
+      let unsubscribe: (() => void) | undefined;
+      import('../mocks/stompBus').then(({ stompBus }) => {
+        unsubscribe = stompBus.subscribe(topic, (data) => {
+          onMessageRef.current(data as T);
+        });
+      });
+      return () => unsubscribe?.();
+    }
+
+    // Production: real STOMP over WebSocket
     const stompClient = getClient();
+    let sub: ReturnType<typeof stompClient.subscribe> | null = null;
 
     const subscribe = () => {
-      const sub = stompClient.subscribe(topic, (frame) => {
+      sub = stompClient.subscribe(topic, (frame) => {
         try {
-          const data: T = JSON.parse(frame.body);
-          onMessageRef.current(data);
+          onMessageRef.current(JSON.parse(frame.body) as T);
         } catch {
           // ignore malformed frames
         }
       });
-      return sub;
     };
 
-    let sub: ReturnType<typeof stompClient.subscribe> | null = null;
-
     if (stompClient.connected) {
-      sub = subscribe();
+      subscribe();
     } else {
       const originalOnConnect = stompClient.onConnect;
       stompClient.onConnect = (frame) => {
         originalOnConnect?.call(stompClient, frame);
-        sub = subscribe();
+        subscribe();
       };
     }
 
-    return () => {
-      sub?.unsubscribe();
-    };
+    return () => sub?.unsubscribe();
   }, [topic]);
 };
